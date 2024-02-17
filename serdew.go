@@ -139,7 +139,7 @@ func Bytes[S SerDe](ctx *Ctx[S], bytes *[]byte) {
 //
 // During deserialization, if there is not enough data to fully read every item in the slice, the
 // slice is partially read and further deserialization is cancelled once the data runs out.
-func Slice[S SerDe, T any](ctx *Ctx[S], slice *[]T, biser func(ctx *Ctx[S], value *T)) {
+func Slice[S SerDe, T any](ctx *Ctx[S], slice *[]T, f func(ctx *Ctx[S], value *T)) {
 	length := len(*slice)
 	integer(ctx, &length)
 	if len(*slice) < length {
@@ -148,7 +148,34 @@ func Slice[S SerDe, T any](ctx *Ctx[S], slice *[]T, biser func(ctx *Ctx[S], valu
 		*slice = newSlice
 	}
 	for i := range length {
-		biser(ctx, &(*slice)[i])
+		f(ctx, &(*slice)[i])
+	}
+}
+
+// Serializes or deserializes a map.
+//
+// During deserialization, if there is not enough data to fully read every item in the map, the
+// map is partially read and further deserialization is cancelled once the data runs out.
+func Map[S SerDe, K comparable, V any](ctx *Ctx[S], m *map[K]V, fK func(ctx *Ctx[S], key *K), fV func(ctx *Ctx[S], value *V)) {
+	length := len(*m)
+	integer(ctx, &length)
+	if ctx.IsSerializer() {
+		for k, v := range *m {
+			fK(ctx, &k)
+			fV(ctx, &v)
+		}
+	} else {
+		if *m == nil {
+			*m = make(map[K]V, length)
+		}
+
+		for range length {
+			var k K
+			var v V
+			fK(ctx, &k)
+			fV(ctx, &v)
+			(*m)[k] = v
+		}
 	}
 }
 

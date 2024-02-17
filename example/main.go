@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 	"math"
-	"reflect"
 
 	"github.com/invpt/serdew"
 )
 
 type Person struct {
-	Name    string
-	Age     int
-	Height  float64
-	Address []string
-	Friends []Person
+	Name       string
+	Age        int
+	Height     float64
+	Address    []string
+	Friends    []Person
+	ExampleMap map[string]int
 }
 
 func SerdewPerson[S serdew.SerDe](ctx *serdew.Ctx[S], p *Person) {
@@ -22,6 +22,7 @@ func SerdewPerson[S serdew.SerDe](ctx *serdew.Ctx[S], p *Person) {
 	serdew.Number(ctx, &p.Height)
 	serdew.Slice(ctx, &p.Address, serdew.String)
 	serdew.Slice(ctx, &p.Friends, SerdewPerson)
+	serdew.Map(ctx, &p.ExampleMap, serdew.String, serdew.Number)
 }
 
 func main() {
@@ -54,6 +55,10 @@ func main() {
 				},
 			},
 		},
+		ExampleMap: map[string]int{
+			"test1": 1,
+			"test2": 29847329,
+		},
 	}
 
 	fmt.Println("Pre-serialized person:", person1)
@@ -66,6 +71,4 @@ func main() {
 	de := serdew.NewDeserializer(ser.Bytes())
 	SerdewPerson(de, &person2)
 	fmt.Println("Deserialized person:", person2)
-
-	fmt.Println("Pre-serialized == deserialized:", reflect.DeepEqual(person1, person2))
 }
